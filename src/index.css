@@ -1,0 +1,65 @@
+@import 'tailwindcss';
+
+@font-face {
+  font-family: 'Google Sans Flex';
+  src: url('/resources/google_sans_flex.woff') format('woff');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --color-background: #fafafa;
+  --color-foreground: #18181b;
+  --color-card: #ffffff;
+  --color-card-foreground: #18181b;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #18181b;
+  --color-primary: #18181b;
+  --color-primary-foreground: #fafafa;
+  --color-secondary: #f4f4f5;
+  --color-secondary-foreground: #18181b;
+  --color-muted: #f4f4f5;
+  --color-muted-foreground: #71717a;
+  --color-accent: #ededef;
+  --color-accent-foreground: #18181b;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #fafafa;
+  --color-border: #e4e4e7;
+  --color-input: #e4e4e7;
+  --color-ring: #18181b;
+  --color-sidebar: #f5f5f5;
+  --color-sidebar-foreground: #18181b;
+  --color-sidebar-accent: #ebebeb;
+  --color-sidebar-border: #e0e0e0;
+  --color-chart-1: #5b8def;
+  --color-chart-2: #4dab8e;
+  --color-chart-3: #e0a84c;
+  --color-chart-4: #e85d5d;
+  --color-chart-5: #9b6bdf;
+  --color-chart-6: #e56da5;
+  --color-chart-7: #4db8c9;
+  --color-chart-8: #e88a4d;
+  --font-sans: 'Google Sans Flex', system-ui, -apple-system, sans-serif;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-default: 0.5rem;
+}
+
+* { border-color: var(--color-border); }
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #d4d4d8 transparent;
+}
+.custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background-color: #d4d4d8; border-radius: 9999px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #a1a1aa; }
