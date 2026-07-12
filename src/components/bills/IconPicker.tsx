@@ -1,88 +1,70 @@
-import { useState, useMemo } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { cn } from '@/lib/utils'
+import { useState, useMemo, useEffect } from "react"
+import { Input } from "@/components/ui/input"
+import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
-// Comprehensive list of Lucide icon names for the picker
-const ALL_LUCIDE_ICONS = [
-  'activity', 'airplay', 'alarm-clock', 'alert-circle', 'anchor', 'aperture', 'archive', 'award',
-  'baby', 'banknote', 'barcode', 'battery', 'beef', 'bell', 'bike', 'bird', 'bolt',
-  'book-open', 'bookmark', 'briefcase', 'building', 'bus', 'calculator', 'calendar', 'camera',
-  'car', 'chart-line', 'check-circle', 'chrome', 'circle', 'clock', 'cloud', 'code', 'coffee',
-  'compass', 'cookie', 'copy', 'credit-card', 'crown', 'database', 'diamond', 'dollar-sign',
-  'download', 'droplet', 'dumbbell', 'edit', 'eye', 'feather', 'file-text', 'film',
-  'flag', 'flame', 'folder', 'gamepad-2', 'gem', 'gift', 'git-branch', 'globe',
-  'graduation-cap', 'grid', 'hard-drive', 'hash', 'headphones', 'heart', 'home', 'image',
-  'inbox', 'info', 'key', 'laptop', 'layers', 'layout', 'leaf', 'lightbulb', 'link',
-  'list', 'lock', 'mail', 'map', 'map-pin', 'message-circle', 'mic', 'monitor', 'moon',
-  'more-horizontal', 'mouse-pointer', 'music', 'navigation', 'notebook', 'package', 'palette', 'paperclip',
-  'pause', 'pen-tool', 'percent', 'phone', 'pie-chart', 'piggy-bank', 'pin', 'play',
-  'power', 'printer', 'radio', 'refresh-cw', 'repeat', 'rocket', 'rss', 'save',
-  'scissors', 'search', 'server', 'settings', 'share', 'shield', 'shopping-bag', 'shopping-cart',
-  'shuffle', 'skip-back', 'skip-forward', 'sliders', 'smartphone', 'smile', 'speaker', 'star',
-  'sun', 'table', 'tag', 'target', 'terminal', 'thermometer', 'thumbs-up', 'toggle-left',
-  'trash', 'trending-up', 'truck', 'tv', 'umbrella', 'unlock', 'upload', 'user',
-  'users', 'utensils', 'video', 'volume', 'wallet', 'watch', 'wifi', 'wind', 'wrench', 'zap',
+const ICONS = [
+  "activity","airplay","alarm-clock","alert-circle","anchor","aperture","archive","arrow-down","arrow-left","arrow-right",
+  "arrow-up","award","baby","banknote","barcode","battery-full","beef","bell","bike","bird",
+  "bolt","book-open","bookmark","briefcase","building","bus","calculator","calendar","camera","car",
+  "chart-line","check-circle","chrome","circle","clock","cloud","code","coffee","compass","cookie",
+  "copy","credit-card","crown","database","diamond","dollar-sign","download","droplet","dumbbell","edit",
+  "eye","feather","file-text","film","flag","flame","folder","gamepad-2","gem","gift",
+  "git-branch","globe","graduation-cap","hand","hard-drive","headphones","heart","home","image","inbox",
+  "key","laptop","leaf","lightbulb","link","lock","mail","map","map-pin","message-circle",
+  "mic","monitor","moon","more-horizontal","music","navigation","notebook","package","palette","paperclip",
+  "pen-tool","phone","pie-chart","piggy-bank","play","rocket","search","settings","shopping-bag","shopping-cart",
+  "smartphone","smile","star","sun","tag","trash","trending-up","truck","umbrella","user","users","utensils","wallet","wifi","wrench","zap"
 ]
 
-interface IconPickerProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onSelect: (iconName: string) => void
-  selected?: string
-}
+interface Props { open: boolean; onOpenChange: (o: boolean) => void; onSelect: (n: string) => void; selected?: string }
 
-export default function IconPicker({ open, onOpenChange, onSelect, selected }: IconPickerProps) {
-  const [search, setSearch] = useState('')
+export default function IconPicker({ open, onOpenChange, onSelect, selected }: Props) {
+  const [search, setSearch] = useState("")
 
-  const filteredIcons = useMemo(() => {
-    if (!search.trim()) return ALL_LUCIDE_ICONS
-    const q = search.toLowerCase()
-    return ALL_LUCIDE_ICONS.filter((name) => name.includes(q))
+  useEffect(() => { if (open) setSearch("") }, [open])
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return ICONS
+    const q = search.toLowerCase(); return ICONS.filter(n => n.includes(q))
   }, [search])
 
-  const handleSelect = (iconName: string) => {
-    onSelect(iconName)
-    setSearch('')
-    onOpenChange(false)
-  }
+  // Force lucide to render icons when content appears
+  useEffect(() => {
+    if (!open) return
+    const timer = setTimeout(() => {
+      const lucide = (window as any).lucide
+      if (lucide?.createIcons) lucide.createIcons()
+    }, 50)
+    return () => clearTimeout(timer)
+  }, [open, filtered])
+
+  if (!open) return null
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[80vh] flex flex-col">
-        <DialogHeader><DialogTitle>选择图标</DialogTitle></DialogHeader>
-        <div className="relative">
-          <i data-lucide="search" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"></i>
-          <Input placeholder="搜索图标..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" autoFocus />
+    <div className="fixed inset-0 z-[99] flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/50" onClick={() => onOpenChange(false)} />
+      <div className="relative z-[100] w-full max-w-lg flex flex-col rounded-lg border bg-card shadow-lg" style={{ maxHeight: "calc(100vh - 2rem)" }}>
+        <div className="flex items-center justify-between p-4 pb-2">
+          <h2 className="text-lg font-semibold leading-none tracking-tight">选择图标</h2>
+          <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}><i data-lucide="x" className="size-4 block"></i></Button>
         </div>
+        <div className="px-4 pb-2"><Input placeholder="搜索图标..." value={search} onChange={e => setSearch(e.target.value)} autoFocus /></div>
         <Separator />
-        <ScrollArea className="flex-1 -mx-2">
-          <div className="grid grid-cols-6 sm:grid-cols-8 gap-1 p-2">
-            {filteredIcons.map((iconName) => (
-              <button
-                key={iconName}
-                type="button"
-                onClick={() => handleSelect(iconName)}
-                className={cn(
-                  'flex flex-col items-center gap-0.5 p-2 rounded-md transition-colors hover:bg-accent',
-                  selected === iconName && 'bg-accent ring-1 ring-ring'
-                )}
-                title={iconName}
-              >
-                <i data-lucide={iconName} className="w-[22px] h-[22px]"></i>
-                <span className="text-[9px] text-muted-foreground truncate w-full text-center leading-tight">
-                  {iconName.length > 8 ? iconName.slice(0, 7) + '…' : iconName}
-                </span>
+        <div className="overflow-y-auto flex-1 p-2 custom-scrollbar">
+          <div className="grid grid-cols-7 gap-1">
+            {filtered.map(name => (
+              <button key={name} type="button" onClick={() => { onSelect(name); onOpenChange(false) }}
+                className={cn("flex flex-col items-center gap-0.5 p-2 rounded-md transition-colors hover:bg-accent", selected === name && "bg-accent ring-1 ring-ring")} title={name}>
+                <i data-lucide={name} className="size-6 block"></i>
+                <span className="text-[9px] text-muted-foreground truncate w-full text-center leading-tight">{name.length > 7 ? name.slice(0,6)+"…" : name}</span>
               </button>
             ))}
-            {filteredIcons.length === 0 && (
-              <div className="col-span-full py-8 text-center text-sm text-muted-foreground">未找到匹配的图标</div>
-            )}
+            {filtered.length === 0 && <div className="col-span-full py-12 text-center text-sm text-muted-foreground">未找到匹配的图标</div>}
           </div>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </div>
   )
 }
