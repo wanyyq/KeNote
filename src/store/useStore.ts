@@ -1,6 +1,5 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { format } from 'date-fns'
 
 export type BillType = 'income' | 'expense'
 
@@ -66,6 +65,7 @@ interface AppState {
   updateSettings: (settings: Partial<AppSettings>) => void
   exportAllData: () => string
   importData: (jsonData: string) => { success: boolean; merged: number; skipped: number }
+  replaceAllData: (jsonData: string) => { success: boolean; count: number }
 }
 
 let billCounter = Date.now()
@@ -89,13 +89,14 @@ export const useStore = create<AppState>()(
       updateBill: (id, updates) => set((state) => ({
         bills: state.bills.map((b) => (b.id === id ? { ...b, ...updates } : b)),
       })),
-      shiftBillDate: (id, days) => set((state) => ({
-        bills: state.bills.map((b) => {
+      shiftBillDate: (id, days) => set((state) => {
+        const updated = state.bills.map((b) => {
           if (b.id !== id) return b
-          const d = new Date(b.date); d.setDate(d.getDate() + days)
-          return { ...b, date: format(d, 'yyyy-MM-dd') }
-        }),
-      })),
+          return { ...b, createdAt: b.createdAt + days * 60000 }
+        })
+        updated.sort((a, b) => b.createdAt - a.createdAt)
+        return { bills: updated }
+      }),
       addCustomCategory: (type, category) => {
         set((state) => {
           const defaults = type === 'expense' ? DEFAULT_EXPENSE_CATEGORIES : DEFAULT_INCOME_CATEGORIES
@@ -151,6 +152,19 @@ export const useStore = create<AppState>()(
           })
           return { success: true, merged, skipped }
         } catch { return { success: false, merged: 0, skipped: 0 } }
+      },
+      replaceAllData: (jsonData) => {
+        try {
+          const data = JSON.parse(jsonData)
+          if (!data.bills || !Array.isArray(data.bills)) return { success: false, count: 0 }
+          set({
+            bills: data.bills,
+            settings: data.settings || get().settings,
+            customExpenseCategories: data.customExpenseCategories || [],
+            customIncomeCategories: data.customIncomeCategories || [],
+          })
+          return { success: true, count: data.bills.length }
+        } catch { return { success: false, count: 0 } }
       },
     }),
     { name: 'kenote-storage', version: 2 }

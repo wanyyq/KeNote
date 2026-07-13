@@ -42,16 +42,13 @@ export default function IconPicker({ open, selected, onSelect, onClose }: Props)
     <div className="fixed inset-0 z-[999] flex items-center justify-center p-4" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
       <div className="relative z-10 w-full max-w-lg flex flex-col rounded-lg border bg-card shadow-lg" style={{ maxHeight: "calc(100vh - 2rem)" }}>
-        <div className="flex items-center justify-between p-4 pb-2">
-          <h2 className="text-lg font-semibold leading-none tracking-tight">选择图标</h2>
-          <Button variant="ghost" size="icon" onClick={onClose}><i data-lucide="x" className="size-4 block"></i></Button>
-        </div>
+        <div className="flex items-center justify-between p-4 pb-2"><h2 className="text-lg font-semibold leading-none tracking-tight">选择图标</h2><Button variant="ghost" size="icon" onClick={onClose}><i data-lucide="x" className="size-4 block"></i></Button></div>
         <div className="px-4 pb-2"><Input placeholder="搜索图标..." value={search} onChange={e => setSearch(e.target.value)} autoFocus /></div>
         <Separator />
         <div className="overflow-y-auto flex-1 p-2 custom-scrollbar">
           <div className="grid grid-cols-7 gap-1">
             {filtered.map(name => (
-              <button key={name} type="button" onMouseDown={e => { e.preventDefault(); onSelect(name) }}
+              <button key={name} type="button" onClick={e => { e.stopPropagation(); onSelect(name) }}
                 className={cn("flex flex-col items-center gap-0.5 p-2 rounded-md transition-colors hover:bg-accent", selected===name&&"bg-accent ring-1 ring-ring")} title={name}>
                 <i data-lucide={name} className="size-6 block pointer-events-none"></i>
                 <span className="text-[9px] text-muted-foreground truncate w-full text-center leading-tight">{name.length>7?name.slice(0,6)+"…":name}</span>

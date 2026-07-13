@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -30,6 +30,13 @@ export default function CreateBillDialog({ open, onOpenChange, editBill }: Props
   const [ipOpen, setIpOpen] = useState(false)
 
   const cats = getAllCategories(type)
+
+  // Re-render lucide icons when customIcon changes
+  useEffect(() => {
+    if (customOpen) {
+      setTimeout(() => { (window as any).lucide?.createIcons() }, 100)
+    }
+  }, [customIcon, customOpen])
 
   const reset = () => { setType("expense"); setAmount(""); setCategory(""); setNote(""); setDate(format(new Date(),"yyyy-MM-dd")); setError(""); setCustomName(""); setCustomIcon("circle"); setCustomOpen(false) }
   const close = () => { reset(); onOpenChange(false) }
@@ -95,7 +102,7 @@ export default function CreateBillDialog({ open, onOpenChange, editBill }: Props
                     </SelectItem>
                   ))}
                   <div className="border-t pt-1 mt-1">
-                    <button className="w-full text-left px-2 py-1.5 text-sm rounded-sm hover:bg-accent flex items-center gap-2 text-muted-foreground" onClick={() => setCustomOpen(true)}>
+                    <button className="w-full text-left px-2 py-1.5 text-sm rounded-sm hover:bg-accent flex items-center gap-2 text-muted-foreground" onMouseDown={e => { e.preventDefault(); e.stopPropagation(); setCustomOpen(true) }}>
                       <i data-lucide="plus" className="size-3.5"></i>自定义分类
                     </button>
                   </div>
@@ -105,7 +112,7 @@ export default function CreateBillDialog({ open, onOpenChange, editBill }: Props
             {/* Custom category inline form */}
             {customOpen && (
               <div className="flex items-center gap-2 pl-1 pt-1">
-                <button onClick={() => setIpOpen(true)} className="shrink-0 p-1.5 rounded-md border hover:bg-accent"><CategoryIcon iconName={customIcon} size={16} /></button>
+                <button onMouseDown={e => { e.preventDefault(); setIpOpen(true) }} className="shrink-0 p-1.5 rounded-md border hover:bg-accent"><CategoryIcon iconName={customIcon} size={16} /></button>
                 <Input placeholder="新分类名" value={customName} onChange={e=>setCustomName(e.target.value)} className="h-8 text-xs flex-1" onKeyDown={e=>{if(e.key==="Enter")doAddCustom()}} />
                 <Button size="sm" onClick={doAddCustom} disabled={!customName.trim()} className="h-8 text-xs">添加</Button>
                 <Button variant="ghost" size="icon-xs" onClick={() => { setCustomOpen(false); setCustomName(""); setCustomIcon("circle") }}><i data-lucide="x" className="size-3"></i></Button>

@@ -30,12 +30,12 @@ export default function Timelist({ bills, onDelete, onEdit, onShift, emptyMessag
       <div className="space-y-4">
         {g.map(([ds, bs]) => {
           const t = dt(bs)
-          return <div key={ds}>
+          return <div key={ds} id={`bill-date-${ds}`}>
             <div className="flex items-center justify-between mb-2 px-1"><h3 className="text-sm font-medium text-muted-foreground">{fmt(ds)}</h3><div className="flex gap-3 text-xs text-muted-foreground">{t.i>0&&<span className="text-emerald-600">收 ¥{t.i.toFixed(2)}</span>}{t.e>0&&<span className="text-red-500">支 ¥{t.e.toFixed(2)}</span>}</div></div>
-            <div className="space-y-2">
+            <div className="flex flex-col gap-2">
               {bs.map(b => (
                 <ContextMenu key={b.id}>
-                  <ContextMenuTrigger>
+                  <ContextMenuTrigger className="contents">
                     <Card className="group hover:border-border/80 transition-colors">
                       <CardContent className="py-3 flex items-center gap-3 px-4">
                         <div className={`size-9 rounded-md flex items-center justify-center shrink-0 ${b.type==="income"?"bg-emerald-100 text-emerald-700":"bg-red-100 text-red-700"}`}><CategoryIcon iconName={getCategoryIcon(b.category,b.type)} size={18}/></div>
@@ -44,22 +44,22 @@ export default function Timelist({ bills, onDelete, onEdit, onShift, emptyMessag
                         <DropdownMenu>
                           <DropdownMenuTrigger className="shrink-0 p-1 rounded hover:bg-accent transition-colors"><i data-lucide="more-vertical" className="size-4"></i></DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-36">
-                            <DropdownMenuItem onClick={() => onEdit(b)}><i data-lucide="pencil" className="size-4 mr-2"></i>编辑</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => onShift(b.id, -1)}><i data-lucide="arrow-up" className="size-4 mr-2"></i>上移一天</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => onShift(b.id, 1)}><i data-lucide="arrow-down" className="size-4 mr-2"></i>下移一天</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onEdit(b)}><i data-lucide="pencil" className="size-3.5 mr-1.5"></i>编辑</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onShift(b.id, 1)}><i data-lucide="arrow-up" className="size-3.5 mr-1.5"></i>上移一格</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onShift(b.id, -1)}><i data-lucide="arrow-down" className="size-3.5 mr-1.5"></i>下移一格</DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => setDelId(b.id)} className="text-destructive"><i data-lucide="trash" className="size-4 mr-2"></i>删除</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setDelId(b.id)} className="text-destructive"><i data-lucide="trash" className="size-3.5 mr-1.5"></i>删除</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </CardContent>
                     </Card>
                   </ContextMenuTrigger>
-                  <ContextMenuContent className="w-40">
-                    <ContextMenuItem onClick={() => onEdit(b)}><i data-lucide="pencil" className="size-4 mr-2"></i>编辑</ContextMenuItem>
-                    <ContextMenuItem onClick={() => onShift(b.id, -1)}><i data-lucide="arrow-up" className="size-4 mr-2"></i>上移一天</ContextMenuItem>
-                    <ContextMenuItem onClick={() => onShift(b.id, 1)}><i data-lucide="arrow-down" className="size-4 mr-2"></i>下移一天</ContextMenuItem>
+                  <ContextMenuContent className="w-36">
+                    <ContextMenuItem onClick={() => onEdit(b)} className="text-xs"><i data-lucide="pencil" className="size-3.5 mr-1.5"></i>编辑</ContextMenuItem>
+                    <ContextMenuItem onClick={() => onShift(b.id, 1)} className="text-xs"><i data-lucide="arrow-up" className="size-3.5 mr-1.5"></i>上移一格</ContextMenuItem>
+                    <ContextMenuItem onClick={() => onShift(b.id, -1)} className="text-xs"><i data-lucide="arrow-down" className="size-3.5 mr-1.5"></i>下移一格</ContextMenuItem>
                     <ContextMenuSeparator />
-                    <ContextMenuItem onClick={() => setDelId(b.id)} className="text-destructive"><i data-lucide="trash" className="size-4 mr-2"></i>删除</ContextMenuItem>
+                    <ContextMenuItem onClick={() => setDelId(b.id)} className="text-xs text-destructive"><i data-lucide="trash" className="size-3.5 mr-1.5"></i>删除</ContextMenuItem>
                   </ContextMenuContent>
                 </ContextMenu>
               ))}
