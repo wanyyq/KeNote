@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { format } from 'date-fns'
 
 export type BillType = 'income' | 'expense'
 
@@ -58,6 +59,7 @@ interface AppState {
   addBill: (bill: Omit<Bill, 'id' | 'createdAt'>) => void
   removeBill: (id: string) => void
   updateBill: (id: string, updates: Partial<Bill>) => void
+  shiftBillDate: (id: string, days: number) => void
   addCustomCategory: (type: BillType, category: CategoryDef) => void
   removeCustomCategory: (type: BillType, name: string) => void
   getAllCategories: (type: BillType) => CategoryDef[]
@@ -86,6 +88,13 @@ export const useStore = create<AppState>()(
       removeBill: (id) => set((state) => ({ bills: state.bills.filter((b) => b.id !== id) })),
       updateBill: (id, updates) => set((state) => ({
         bills: state.bills.map((b) => (b.id === id ? { ...b, ...updates } : b)),
+      })),
+      shiftBillDate: (id, days) => set((state) => ({
+        bills: state.bills.map((b) => {
+          if (b.id !== id) return b
+          const d = new Date(b.date); d.setDate(d.getDate() + days)
+          return { ...b, date: format(d, 'yyyy-MM-dd') }
+        }),
       })),
       addCustomCategory: (type, category) => {
         set((state) => {
