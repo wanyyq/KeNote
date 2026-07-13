@@ -59,20 +59,20 @@ export default function Console() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 md:py-10 space-y-5">
-      <div className="pt-4 md:pt-8"><h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">控制台</h1><p className="text-muted-foreground mt-1">软件信息与设置</p></div>
+      <div className="pt-4 md:pt-8"><h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">控制台</h1><p className="text-muted-foreground mt-1">账户、信息与设置</p></div>
 
       {/* About */}
       <Card>
-        <CardHeader><CardTitle>关于 KeNote</CardTitle></CardHeader>
+        <CardHeader><CardTitle>About KeNote</CardTitle></CardHeader>
         <CardContent className="space-y-2 text-sm">
-          {[["版本","1.0.0"],["技术栈","React 19 + Vite + Shadcn UI"],["账单总数",`${bills.length} 条`],["累计收入",`¥${ti.toFixed(2)}`,"text-emerald-600"],["累计支出",`¥${te.toFixed(2)}`,"text-red-500"],["账户结余",`¥${(ti-te).toFixed(2)}`,ti-te>=0?"":"text-red-500"]].map(([l,v,c],i)=><div key={l}><div className="flex justify-between py-1"><span className="text-muted-foreground">{l}</span><span className={c||""}>{v}</span></div>{i<5&&<Separator/>}</div>)}
+          {[["软件版本","1.0.1"],["为您记录",`${bills.length} 条账单`],["累计收入",`¥${ti.toFixed(2)}`,"text-emerald-600"],["累计支出",`¥${te.toFixed(2)}`,"text-red-500"],["账户结余",`¥${(ti-te).toFixed(2)}`,ti-te>=0?"":"text-red-500"]].map(([l,v,c],i)=><div key={l}><div className="flex justify-between py-1"><span className="text-muted-foreground">{l}</span><span className={c||""}>{v}</span></div>{i<5&&<Separator/>}</div>)}
         </CardContent>
       </Card>
 
       {/* Tags & Categories */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <div><CardTitle>标签与分类</CardTitle><CardDescription>管理自定义分类</CardDescription></div>
+          <div><CardTitle>标签与分类</CardTitle><CardDescription>管理自定义标签</CardDescription></div>
           <Button variant="outline" size="sm" onClick={() => setAddTagOpen(!addTagOpen)}><i data-lucide="plus" className="size-3.5 mr-1"></i>添加</Button>
         </CardHeader>
         <CardContent>
@@ -86,7 +86,7 @@ export default function Console() {
             </div>
           )}
           {allCustom.length === 0 && !addTagOpen ? (
-            <p className="text-sm text-muted-foreground py-2">暂无自定义分类</p>
+            <p className="text-sm text-muted-foreground py-2">暂无自定义标签</p>
           ) : (
             <div className="space-y-1">
               {allCustom.map(c => (
@@ -102,7 +102,7 @@ export default function Console() {
 
       {/* Account */}
       <Card>
-        <CardHeader><CardTitle>账户</CardTitle><CardDescription>完整数据导出与导入</CardDescription></CardHeader>
+        <CardHeader><CardTitle>账户</CardTitle><CardDescription>本地账户数据(您的数据完全存储在本地)</CardDescription></CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between"><div><p className="text-sm font-medium">导出账户数据</p><p className="text-xs text-muted-foreground mt-0.5">完整 JSON 备份</p></div><Button variant="outline" size="sm" onClick={handleExport}><i data-lucide="download" className="size-3.5 mr-1.5"></i>导出</Button></div>
           <Separator />
@@ -112,11 +112,11 @@ export default function Console() {
 
       {/* Data Management */}
       <Card>
-        <CardHeader><CardTitle>数据管理</CardTitle><CardDescription>合并导入</CardDescription></CardHeader>
+        <CardHeader><CardTitle>设备同步</CardTitle><CardDescription>在多个设备同步账单数据</CardDescription></CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between"><div><p className="text-sm font-medium">导出所有数据</p><p className="text-xs text-muted-foreground mt-0.5">JSON 文件</p></div><Button variant="outline" size="sm" onClick={handleExport}><i data-lucide="download" className="size-3.5 mr-1.5"></i>导出</Button></div>
+          <div className="flex items-center justify-between"><div><p className="text-sm font-medium">导出账单数据</p><p className="text-xs text-muted-foreground mt-0.5">请将导出的文件复制到您的其他安装此软件的设备上,然后点击"导入合并数据"</p></div><Button variant="outline" size="sm" onClick={handleExport}><i data-lucide="download" className="size-3.5 mr-1.5"></i>导出</Button></div>
           <Separator />
-          <div><div className="flex items-center justify-between mb-2"><div><p className="text-sm font-medium">导入数据（合并）</p><p className="text-xs text-muted-foreground mt-0.5">自动跳过重复</p></div><input ref={mergeRef} type="file" accept=".json" className="hidden" id="mgf" onChange={handleMergeImport}/><Button variant="outline" size="sm" onClick={()=>mergeRef.current?.click()}><i data-lucide="upload" className="size-3.5 mr-1.5"></i>导入</Button></div>{mergeStatus&&<div className={`text-xs p-2 rounded-md ${mergeStatus.t==="success"?"bg-emerald-50 text-emerald-700":"bg-red-50 text-destructive"}`}>{mergeStatus.m}</div>}</div>
+          <div><div className="flex items-center justify-between mb-2"><div><p className="text-sm font-medium">导入合并数据</p><p className="text-xs text-muted-foreground mt-0.5">将多分账单合并到一起</p></div><input ref={mergeRef} type="file" accept=".json" className="hidden" id="mgf" onChange={handleMergeImport}/><Button variant="outline" size="sm" onClick={()=>mergeRef.current?.click()}><i data-lucide="upload" className="size-3.5 mr-1.5"></i>导入</Button></div>{mergeStatus&&<div className={`text-xs p-2 rounded-md ${mergeStatus.t==="success"?"bg-emerald-50 text-emerald-700":"bg-red-50 text-destructive"}`}>{mergeStatus.m}</div>}</div>
         </CardContent>
       </Card>
 
