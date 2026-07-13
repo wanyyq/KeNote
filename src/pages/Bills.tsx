@@ -64,10 +64,10 @@ export default function Bills() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 md:py-10 space-y-5">
       <div className="pt-4 md:pt-8 flex items-center justify-between gap-4">
-        <div><h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">账单</h1><p className="text-muted-foreground mt-1">您的收入与支出</p></div>
+        <div><h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">账单</h1><p className="text-muted-foreground mt-1">收入与支出阅览</p></div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => { setGotoDate(format(new Date(),"yyyy-MM-dd")); setGotoOpen(true) }}><i data-lucide="calendar" className="size-4 mr-1"></i>调整至</Button>
-          <Button onClick={()=>{setEditBill(null);setCo(true)}}><i data-lucide="plus" className="size-4 mr-1.5"></i>创建账单</Button>
+          <Button variant="outline" size="sm" onClick={() => { setGotoDate(format(new Date(),"yyyy-MM-dd")); setGotoOpen(true) }}><i data-lucide="calendar" className="size-4 mr-1"></i>打开日期</Button>
+          <Button onClick={()=>{setEditBill(null);setCo(true)}}><i data-lucide="plus" className="size-4 mr-1.5"></i>新建记账</Button>
         </div>
       </div>
       <div className="flex gap-2 flex-wrap items-center">

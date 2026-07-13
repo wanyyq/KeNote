@@ -80,7 +80,7 @@ export default function Home() {
       {/* Header */}
       <div className="pt-4 md:pt-8 flex items-center justify-between flex-wrap gap-4">
         <div><h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">{getGreeting()}</h1><p className="text-muted-foreground mt-1 text-sm">{format(new Date(),"yyyy年M月d日 EEEE",{locale:zhCN})}</p></div>
-        <Button onClick={()=>setCreateOpen(true)}><i data-lucide="plus" className="size-4 mr-1.5"></i>开始记账</Button>
+        <Button onClick={()=>setCreateOpen(true)}><i data-lucide="plus" className="size-4 mr-1.5"></i>新建记账</Button>
       </div>
 
       {/* Row 1: Month summary + Year totals */}
