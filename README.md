@@ -29,7 +29,7 @@
 
 ![Home-cha](./img/Home-cha.png)
 
-### 回收站
+### 多样可视化数据
 
 ![Home-bin](./img/Home-bin.png)
 
