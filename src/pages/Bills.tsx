@@ -14,7 +14,7 @@ import { format, parseISO } from "date-fns"
 type FT = "all"|"income"|"expense"; type DM = "timeline"|"heatmap"
 
 export default function Bills() {
-  const { bills, removeBill, shiftBillDate, getAllCategories } = useStore()
+  const { bills, removeBill, shiftBillDate, getAllCategories, exportBillsCSV } = useStore()
   const [co, setCo] = useState(false)
   const [editBill, setEditBill] = useState<Bill | null>(null)
   const [s, setS] = useState("")
@@ -66,7 +66,8 @@ export default function Bills() {
       <div className="pt-4 md:pt-8 flex items-center justify-between gap-4">
         <div><h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">账单</h1><p className="text-muted-foreground mt-1">收入与支出阅览</p></div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => { setGotoDate(format(new Date(),"yyyy-MM-dd")); setGotoOpen(true) }}><i data-lucide="calendar" className="size-4 mr-1"></i>打开日期</Button>
+          <Button variant="outline" size="sm" onClick={exportBillsCSV}><i data-lucide="download" className="size-4 mr-1"></i>导出到Excel</Button>
+          <Button variant="outline" size="sm" onClick={() => { setGotoDate(format(new Date(),"yyyy-MM-dd")); setGotoOpen(true) }}><i data-lucide="calendar" className="size-4 mr-1"></i>跳转至某一天</Button>
           <Button onClick={()=>{setEditBill(null);setCo(true)}}><i data-lucide="plus" className="size-4 mr-1.5"></i>新建记账</Button>
         </div>
       </div>

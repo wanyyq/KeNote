@@ -64,6 +64,7 @@ interface AppState {
   getAllCategories: (type: BillType) => CategoryDef[]
   updateSettings: (settings: Partial<AppSettings>) => void
   exportAllData: () => string
+  exportBillsCSV: () => void
   importData: (jsonData: string) => { success: boolean; merged: number; skipped: number }
   replaceAllData: (jsonData: string) => { success: boolean; count: number }
 }
@@ -130,6 +131,39 @@ export const useStore = create<AppState>()(
           customExpenseCategories: state.customExpenseCategories,
           customIncomeCategories: state.customIncomeCategories,
         }, null, 2)
+      },
+      exportBillsCSV: () => {
+        const state = get()
+        const headers = ['类型', '金额', '分类', '备注', '日期', '创建时间']
+        const colWidths = [80, 100, 120, 260, 130, 180]
+        const typeMap: Record<string, string> = { income: '收入', expense: '支出' }
+        const escape = (s: string) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        const rows = state.bills.map((b) => {
+          const d = new Date(b.createdAt)
+          const fallbackDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+          return [
+            typeMap[b.type] || b.type,
+            String(b.amount),
+            b.category,
+            b.note,
+            b.date || fallbackDate,
+            d.toLocaleString('zh-CN'),
+          ]
+        })
+        const headRow = headers.map((h, i) => `<th style="width:${colWidths[i]}px">${escape(h)}</th>`).join('')
+        const bodyRows = rows.map((row) => `<tr>${row.map((cell) => `<td>${escape(cell)}</td>`).join('')}</tr>`).join('')
+        const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>table{border-collapse:collapse}th,td{border:1px solid #ccc;padding:4px 8px;white-space:nowrap}th{background:#f5f5f5;text-align:center;font-weight:bold}td{text-align:left}</style></head><body><table>${headRow}${bodyRows}</table></body></html>`
+        const bom = '\uFEFF'
+        const blob = new Blob([bom + html], { type: 'application/vnd.ms-excel;charset=utf-8' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        const now = new Date()
+        a.download = `账单导出_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}.xls`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
       },
       importData: (jsonData) => {
         try {

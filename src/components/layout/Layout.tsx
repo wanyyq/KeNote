@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 const navItems = [
   { path: "/", label: "主页", icon: "home" },
   { path: "/bills", label: "账单", icon: "file-text" },
-  { path: "/tools", label: "工具", icon: "settings" },
+  { path: "/tools", label: "工具", icon: "calculator" },
   { path: "/console", label: "控制台", icon: "monitor" },
 ]
 

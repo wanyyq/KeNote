@@ -104,9 +104,9 @@ export default function Console() {
       <Card>
         <CardHeader><CardTitle>账户</CardTitle><CardDescription>本地账户数据(您的数据完全存储在本地)</CardDescription></CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between"><div><p className="text-sm font-medium">导出账户数据</p><p className="text-xs text-muted-foreground mt-0.5">完整 JSON 备份</p></div><Button variant="outline" size="sm" onClick={handleExport}><i data-lucide="download" className="size-3.5 mr-1.5"></i>导出</Button></div>
+          <div className="flex items-center justify-between"><div><p className="text-sm font-medium">导出账户数据</p><p className="text-xs text-muted-foreground mt-0.5">完整备份用户的数据,或用于迁移数据到新的设备</p></div><Button variant="outline" size="sm" onClick={handleExport}><i data-lucide="download" className="size-3.5 mr-1.5"></i>导出</Button></div>
           <Separator />
-          <div><div className="flex items-center justify-between mb-2"><div><p className="text-sm font-medium">导入新账户数据</p><p className="text-xs text-red-500 mt-0.5">⚠ 完全替换此设备所有数据</p></div><input ref={replaceRef} type="file" accept=".json" className="hidden" id="rpf" onChange={handleReplaceImport}/><Button variant="destructive" size="sm" onClick={()=>replaceRef.current?.click()}><i data-lucide="upload" className="size-3.5 mr-1.5"></i>导入</Button></div>{replaceStatus&&<div className={`text-xs p-2 rounded-md ${replaceStatus.t==="success"?"bg-emerald-50 text-emerald-700":"bg-red-50 text-destructive"}`}>{replaceStatus.m}</div>}</div>
+          <div><div className="flex items-center justify-between mb-2"><div><p className="text-sm font-medium">导入新账户数据</p><p className="text-xs text-red-500 mt-0.5">⚠ 此功能用于完整地将旧设备的数据迁移到此设备,将会完全替换此设备所有数据</p></div><input ref={replaceRef} type="file" accept=".json" className="hidden" id="rpf" onChange={handleReplaceImport}/><Button variant="destructive" size="sm" onClick={()=>replaceRef.current?.click()}><i data-lucide="upload" className="size-3.5 mr-1.5"></i>导入用户数据 </Button></div>{replaceStatus&&<div className={`text-xs p-2 rounded-md ${replaceStatus.t==="success"?"bg-emerald-50 text-emerald-700":"bg-red-50 text-destructive"}`}>{replaceStatus.m}</div>}</div>
         </CardContent>
       </Card>
 
@@ -114,9 +114,9 @@ export default function Console() {
       <Card>
         <CardHeader><CardTitle>设备同步</CardTitle><CardDescription>在多个设备同步账单数据</CardDescription></CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between"><div><p className="text-sm font-medium">导出账单数据</p><p className="text-xs text-muted-foreground mt-0.5">请将导出的文件复制到您的其他安装此软件的设备上,然后点击"导入合并数据"</p></div><Button variant="outline" size="sm" onClick={handleExport}><i data-lucide="download" className="size-3.5 mr-1.5"></i>导出</Button></div>
+          <div className="flex items-center justify-between"><div><p className="text-sm font-medium">导出账单数据</p><p className="text-xs text-muted-foreground mt-0.5">请将导出的文件复制到您的其他安装此软件的设备上,然后点击"导入合并数据"</p></div><Button variant="outline" size="sm" onClick={handleExport}><i data-lucide="download" className="size-3.5 mr-1.5"></i>导出同步数据</Button></div>
           <Separator />
-          <div><div className="flex items-center justify-between mb-2"><div><p className="text-sm font-medium">导入合并数据</p><p className="text-xs text-muted-foreground mt-0.5">将多分账单合并到一起</p></div><input ref={mergeRef} type="file" accept=".json" className="hidden" id="mgf" onChange={handleMergeImport}/><Button variant="outline" size="sm" onClick={()=>mergeRef.current?.click()}><i data-lucide="upload" className="size-3.5 mr-1.5"></i>导入</Button></div>{mergeStatus&&<div className={`text-xs p-2 rounded-md ${mergeStatus.t==="success"?"bg-emerald-50 text-emerald-700":"bg-red-50 text-destructive"}`}>{mergeStatus.m}</div>}</div>
+          <div><div className="flex items-center justify-between mb-2"><div><p className="text-sm font-medium">导入合并数据</p><p className="text-xs text-muted-foreground mt-0.5">将多分账单合并到一起</p></div><input ref={mergeRef} type="file" accept=".json" className="hidden" id="mgf" onChange={handleMergeImport}/><Button variant="outline" size="sm" onClick={()=>mergeRef.current?.click()}><i data-lucide="upload" className="size-3.5 mr-1.5"></i>合并同步数据</Button></div>{mergeStatus&&<div className={`text-xs p-2 rounded-md ${mergeStatus.t==="success"?"bg-emerald-50 text-emerald-700":"bg-red-50 text-destructive"}`}>{mergeStatus.m}</div>}</div>
         </CardContent>
       </Card>
 
