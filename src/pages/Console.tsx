@@ -11,13 +11,14 @@ import IconPicker from "@/components/bills/IconPicker"
 import { BillType } from "@/store/useStore"
 
 export default function Console() {
-  const { bills, exportAllData, importData, replaceAllData, getAllCategories, removeCustomCategory, addCustomCategory, customExpenseCategories, customIncomeCategories } = useStore()
+  const { bills, exportAllData, importData, replaceAllData, getAllCategories, removeCustomCategory, addCustomCategory, customExpenseCategories, customIncomeCategories, clearAllData } = useStore()
   const [mergeStatus, setMergeStatus] = useState<{t:"success"|"error";m:string}|null>(null)
   const [replaceStatus, setReplaceStatus] = useState<{t:"success"|"error";m:string}|null>(null)
   const [replaceConfirmOpen, setReplaceConfirmOpen] = useState(false)
   const [pendingReplaceData, setPendingReplaceData] = useState<string | null>(null)
   const mergeRef = useRef<HTMLInputElement>(null)
   const replaceRef = useRef<HTMLInputElement>(null)
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false)
 
   // Add tag state
   const [addTagOpen, setAddTagOpen] = useState(false)
@@ -100,13 +101,15 @@ export default function Console() {
         </CardContent>
       </Card>
 
-      {/* Account */}
-      <Card>
+       {/* Account */}
+       <Card>
         <CardHeader><CardTitle>账户</CardTitle><CardDescription>本地账户数据(您的数据完全存储在本地)</CardDescription></CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between"><div><p className="text-sm font-medium">导出账户数据</p><p className="text-xs text-muted-foreground mt-0.5">完整备份用户的数据,或用于迁移数据到新的设备</p></div><Button variant="outline" size="sm" onClick={handleExport}><i data-lucide="download" className="size-3.5 mr-1.5"></i>导出</Button></div>
           <Separator />
           <div><div className="flex items-center justify-between mb-2"><div><p className="text-sm font-medium">导入新账户数据</p><p className="text-xs text-red-500 mt-0.5">⚠ 此功能用于完整地将旧设备的数据迁移到此设备,将会完全替换此设备所有数据</p></div><input ref={replaceRef} type="file" accept=".json" className="hidden" id="rpf" onChange={handleReplaceImport}/><Button variant="destructive" size="sm" onClick={()=>replaceRef.current?.click()}><i data-lucide="upload" className="size-3.5 mr-1.5"></i>导入用户数据 </Button></div>{replaceStatus&&<div className={`text-xs p-2 rounded-md ${replaceStatus.t==="success"?"bg-emerald-50 text-emerald-700":"bg-red-50 text-destructive"}`}>{replaceStatus.m}</div>}</div>
+          <Separator />
+          <div><div className="flex items-center justify-between mb-2"><div><p className="text-sm font-medium">清除所有数据</p><p className="text-xs text-red-500 mt-0.5">⚠ 此操作将删除所有账单记录和自定义分类,无法恢复</p></div><Button variant="destructive" size="sm" onClick={()=>setClearConfirmOpen(true)}><i data-lucide="trash-2" className="size-3.5 mr-1.5"></i>清除所有数据</Button></div></div>
         </CardContent>
       </Card>
 
@@ -132,6 +135,21 @@ export default function Console() {
             <AlertDialogCancel className="bg-white hover:bg-gray-50">取消</AlertDialogCancel>
             <Button variant="outline" onClick={() => setReplaceConfirmOpen(false)} className="text-muted-foreground">合并</Button>
             <AlertDialogAction onClick={confirmReplace} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">确定导入新数据</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Clear Data Confirm AlertDialog */}
+      <AlertDialog open={clearConfirmOpen} onOpenChange={setClearConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>⚠ 清除所有数据</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>此操作将删除所有账单记录和自定义分类。</p><p>此操作无法撤销，请谨慎操作。</p><p>建议在清除前先导出备份数据。</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-white hover:bg-gray-50">取消</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { clearAllData(); setClearConfirmOpen(false) }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">确认清除</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

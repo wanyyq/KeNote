@@ -67,6 +67,7 @@ interface AppState {
   exportBillsCSV: () => void
   importData: (jsonData: string) => { success: boolean; merged: number; skipped: number }
   replaceAllData: (jsonData: string) => { success: boolean; count: number }
+  clearAllData: () => void
 }
 
 let billCounter = Date.now()
@@ -199,6 +200,14 @@ export const useStore = create<AppState>()(
           })
           return { success: true, count: data.bills.length }
         } catch { return { success: false, count: 0 } }
+      },
+      clearAllData: () => {
+        set({
+          bills: [],
+          settings: { currency: '¥' },
+          customExpenseCategories: [],
+          customIncomeCategories: [],
+        })
       },
     }),
     { name: 'kenote-storage', version: 2 }
