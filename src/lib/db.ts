@@ -111,8 +111,57 @@ export async function getBillsByCategory(category: string): Promise<Bill[]> {
 }
 
 /**
+ * Get bills around a specific date (for jump to date feature)
+ * Loads bills near the target date so scrolling works
+ */
+export async function getBillsAroundDate(dateStr: string, limit: number = 50): Promise<Bill[]> {
+  const db = await getDB()
+  
+  // Get timestamp range for the target date
+  const dateStart = new Date(dateStr + 'T00:00:00').getTime()
+  const dateEnd = new Date(dateStr + 'T23:59:59').getTime()
+  
+  const bills: Bill[] = []
+  
+  // First, get bills ON that date (newest first)
+  let cursor = await db.transaction('bills').store.index('by-date')
+    .openCursor(IDBKeyRange.bound(dateStart, dateEnd), 'prev')
+  
+  while (cursor) {
+    bills.push(cursor.value)
+    cursor = await cursor.continue()
+  }
+  
+  // If not enough bills, get older ones
+  if (bills.length < limit) {
+    cursor = await db.transaction('bills').store.index('by-date')
+      .openCursor(IDBKeyRange.upperBound(dateStart - 1, true), 'prev')
+    
+    while (cursor && bills.length < limit) {
+      bills.push(cursor.value)
+      cursor = await cursor.continue()
+    }
+  }
+  
+  // If still not enough, get newer ones
+  if (bills.length < limit) {
+    cursor = await db.transaction('bills').store.index('by-date')
+      .openCursor(IDBKeyRange.lowerBound(dateEnd + 1, true))
+    
+    while (cursor && bills.length < limit) {
+      bills.push(cursor.value)
+      cursor = await cursor.continue()
+    }
+    
+    // Sort by date descending
+    bills.sort((a, b) => b.createdAt - a.createdAt)
+  }
+  
+  return bills
+}
+
+/**
  * Get all distinct dates from bills
- * Used for jump to date feature
  */
 export async function getAllDistinctDates(): Promise<string[]> {
   const db = await getDB()

@@ -2,7 +2,7 @@
 import { useStore, useSettingsStore, Bill, BillType } from "@/store/useStore"
 import { useBillsPaginated } from "@/hooks/useBillsPaginated"
 import { useFilteredBills } from "@/hooks/useFilteredBills"
-import { getAllDistinctDates } from "@/lib/db"
+import { getAllDistinctDates, getBillsAroundDate } from "@/lib/db"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,6 +29,9 @@ export default function Bills() {
   const [gotoDate, setGotoDate] = useState(format(new Date(), "yyyy-MM-dd"))
   const [calOpen, setCalOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
+  // Jump mode: when user jumps to a date, show these bills instead of paginated
+  const [jumpBills, setJumpBills] = useState<Bill[] | null>(null)
+  const [jumpDate, setJumpDate] = useState<string | null>(null)
   const timelineRef = useRef<HTMLDivElement>(null)
 
   const { 
@@ -91,6 +94,7 @@ export default function Bills() {
     const allDates = await getAllDistinctDates()
     if (allDates.length === 0) return
     
+    // Find closest date
     let closest = allDates[0]
     let minDiff = Math.abs(new Date(gotoDate).getTime() - new Date(closest).getTime())
     for (const d of allDates) {
@@ -99,15 +103,25 @@ export default function Bills() {
     }
     
     setDm("timeline")
+    // Load bills around target date
+    const aroundBills = await getBillsAroundDate(closest, 200)
+    setJumpBills(aroundBills)
+    setJumpDate(closest)
+    
     setTimeout(() => {
-      refreshRef.current().then(() => {
-        setTimeout(() => {
-          const el = document.getElementById(`bill-date-${closest}`)
-          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" })
-        }, 300)
-      })
-    }, 100)
+      const el = document.getElementById(`bill-date-${closest}`)
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" })
+    }, 300)
   }
+
+  // Reset jump mode when filters change
+  useEffect(() => {
+    setJumpBills(null)
+    setJumpDate(null)
+  }, [ft, fc, s])
+
+  // Use jump bills if in jump mode, otherwise use paginated
+  const displayBills = jumpBills || paginatedBills
 
   const handleExport = async () => {
     setExporting(true)
@@ -133,8 +147,16 @@ export default function Bills() {
       </div>
       {dm==="heatmap"?<Card><CardContent className="py-5"><Heatmap bills={heatmapBills}/></CardContent></Card>
         :<div ref={timelineRef}>
-          <Timelist bills={paginatedBills} onDelete={handleDelete} onEdit={handleEdit} onShift={handleShift} emptyMessage={ft!=="all"||fc!=="all"||s?"没有符合筛选条件的账单":"暂无账单记录"}/>
-          {hasMore && (
+          {jumpDate && (
+            <div className="flex items-center justify-between bg-muted/50 rounded-md px-3 py-2 mb-2">
+              <span className="text-xs text-muted-foreground">已跳转至 {jumpDate}</span>
+              <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => { setJumpBills(null); setJumpDate(null) }}>
+                返回最新
+              </Button>
+            </div>
+          )}
+          <Timelist bills={displayBills} onDelete={handleDelete} onEdit={handleEdit} onShift={handleShift} emptyMessage={ft!=="all"||fc!=="all"||s?"没有符合筛选条件的账单":"暂无账单记录"}/>
+          {!jumpDate && hasMore && (
             <div ref={loadMoreRef} className="flex justify-center py-4">
               {loading ? (
                 <div className="flex items-center gap-2 text-muted-foreground">

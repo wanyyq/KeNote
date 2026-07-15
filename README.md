@@ -206,6 +206,12 @@ python make-test.py 10000
 
 客户端体积小巧是因为依赖 WebView 进行渲染。
 
+但记得请留至少30MB+空间用于存储您的数据(实测 存储1年的数据约占用10MB),
+
+而部分Windows系统没有自带.net 10的用户需要额外占用100MB空间用于系统自动下载.net 10
+
+安卓版本理论可直接允许,但要支持webview(例如某些特别设备例如手环等可能没有)
+
 ## 许可证
 
 [Apache-2.0 license](https://github.com/wanyyq/KeNote#Apache-2.0-1-ov-file)

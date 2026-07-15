@@ -14,7 +14,8 @@ import { zhCN } from "date-fns/locale"
 function getGreeting() { const h = new Date().getHours(); if (h<12) return "上午好"; if (h<17) return "下午好"; return "晚上好" }
 
 export default function Home() {
-  const { bills, loading, total, monthIncome, monthExpense, yearIncome, yearExpense } = useBillStats()
+  const [refreshKey, setRefreshKey] = useState(0)
+  const { bills, total, monthIncome, monthExpense, yearIncome, yearExpense } = useBillStats(refreshKey)
   const [createOpen, setCreateOpen] = useState(false)
   const todayStr = format(new Date(), "yyyy-MM-dd")
   const yearStr = format(new Date(), "yyyy")
@@ -128,7 +129,7 @@ export default function Home() {
         <Card><CardContent className="py-5"><h3 className="text-sm font-medium text-muted-foreground mb-3">支出热力图</h3><Heatmap bills={expenseBills}/></CardContent></Card>
       </div>
 
-      <CreateBillDialog open={createOpen} onOpenChange={setCreateOpen}/>
+      <CreateBillDialog open={createOpen} onOpenChange={(o) => { setCreateOpen(o); if (!o) setRefreshKey(k => k + 1) }}/>
     </div>
   )
 }

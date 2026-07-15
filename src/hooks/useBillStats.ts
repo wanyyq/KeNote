@@ -14,7 +14,7 @@ interface BillStats {
   loading: boolean
 }
 
-export function useBillStats(): BillStats {
+export function useBillStats(refreshKey?: number): BillStats {
   const [bills, setBills] = useState<Bill[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -24,7 +24,6 @@ export function useBillStats(): BillStats {
     getAllBills().then(allBills => {
       if (!mounted) return
       setLoading(false)
-      // Double RAF ensures data arrives after initial empty render, triggering animations
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           if (mounted) setBills(allBills)
@@ -36,7 +35,7 @@ export function useBillStats(): BillStats {
     })
     
     return () => { mounted = false }
-  }, [])
+  }, [refreshKey])
 
   const totalIncome = bills.filter(b => b.type === 'income').reduce((a, b) => a + b.amount, 0)
   const totalExpense = bills.filter(b => b.type === 'expense').reduce((a, b) => a + b.amount, 0)
