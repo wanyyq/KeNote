@@ -1,12 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar } from "@/components/ui/calendar"
-import { useStore } from "@/store/useStore"
 import { cn } from "@/lib/utils"
-import { format } from "date-fns"
 
 /* ---------- types & constants ---------- */
 
@@ -62,33 +56,20 @@ function endsWithOp(s: string): boolean {
   return s.length > 0 && OPS.has(s[s.length - 1])
 }
 
-function todayStr(): string { return new Date().toISOString().slice(0, 10) }
-function monthStart(): string { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01` }
-
 /* ---------- component ---------- */
 
 export default function Calculator() {
-  const { bills } = useStore()
-
   const [display, setDisplay] = useState('0')
   const displayRef = useRef(display)
   displayRef.current = display
 
   const [error, setError] = useState(false)
   const [history, setHistory] = useState<HistoryEntry[]>([])
-  const [panel, setPanel] = useState<'none' | 'history' | 'import'>('none')
-
-  const [impStart, setImpStart] = useState(monthStart())
-  const [impEnd, setImpEnd] = useState(todayStr())
-  const [impType, setImpType] = useState<'all' | 'income' | 'expense'>('expense')
-  const [impCategory, setImpCategory] = useState('all')
-
-  const [calOpenStart, setCalOpenStart] = useState(false)
-  const [calOpenEnd, setCalOpenEnd] = useState(false)
+  const [panel, setPanel] = useState<'none' | 'history'>('none')
 
   const historyEndRef = useRef<HTMLDivElement>(null)
 
-  // keyboard support — no longer blocked by import panel
+  // keyboard support
   useEffect(() => {
     const map: Record<string, BtnKey> = {
       Escape: 'C', Backspace: '⌫', Delete: 'C',
@@ -107,30 +88,7 @@ export default function Calculator() {
 
   useEffect(() => { if (panel === 'history') historyEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [history, panel])
 
-  // ---- import stats ----
-  const importResult = (() => {
-    const start = new Date(impStart)
-    const end = new Date(impEnd + 'T23:59:59')
-    let filtered = bills.filter(b => {
-      const d = new Date(b.date || new Date(b.createdAt).toISOString().slice(0, 10))
-      return d >= start && d <= end
-    })
-    if (impType !== 'all') filtered = filtered.filter(b => b.type === impType)
-    if (impCategory !== 'all') filtered = filtered.filter(b => b.category === impCategory)
-    const income = filtered.filter(b => b.type === 'income').reduce((s, b) => s + b.amount, 0)
-    const expense = filtered.filter(b => b.type === 'expense').reduce((s, b) => s + b.amount, 0)
-    return { income, expense, balance: income - expense, count: filtered.length }
-  })()
-
-  const doImport = () => {
-    const val = impType === 'income' ? importResult.income : impType === 'expense' ? importResult.expense : importResult.income + importResult.expense
-    if (val === 0 || importResult.count === 0) return
-    displayRef.current = String(val)
-    setDisplay(String(val))
-    setPanel('none')
-  }
-
-  // ---- button handler — uses ref for latest display, not reliant on closure ----
+  // ---- button handler ----
   const handlePress = useCallback((key: BtnKey) => {
     setError(false)
 
@@ -205,11 +163,6 @@ export default function Calculator() {
           className={cn("text-xs gap-1 rounded-lg flex-1", panel === 'history' && "bg-accent")}
           onClick={() => setPanel(panel === 'history' ? 'none' : 'history')}
         ><i data-lucide="history" className="size-3.5"></i>历史</Button>
-        <Button
-          variant="ghost" size="sm"
-          className={cn("text-xs gap-1 rounded-lg flex-1", panel === 'import' && "bg-accent")}
-          onClick={() => setPanel(panel === 'import' ? 'none' : 'import')}
-        ><i data-lucide="download" className="size-3.5"></i>查账</Button>
       </div>
 
       {/* History Panel */}
@@ -243,66 +196,6 @@ export default function Calculator() {
               <div ref={historyEndRef} />
             </div>
           )}
-        </div>
-      )}
-
-      {/* Import Panel */}
-      {panel === 'import' && (
-        <div className="flex-1 min-h-0 overflow-hidden flex flex-col border-t pt-2">
-          <div className="space-y-3">
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <label className="text-xs text-muted-foreground mb-1 block">开始</label>
-                <div className="flex gap-1">
-                  <Input type="date" value={impStart} onChange={e => setImpStart(e.target.value)} className="h-8 text-xs flex-1" />
-                  <Popover open={calOpenStart} onOpenChange={setCalOpenStart}>
-                    <PopoverTrigger asChild><Button variant="outline" size="icon" className="h-8 w-8 shrink-0"><i data-lucide="calendar" className="size-3.5"></i></Button></PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={new Date(impStart)} onSelect={d => { if (d) { setImpStart(format(d, 'yyyy-MM-dd')); setCalOpenStart(false) } }} initialFocus /></PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-              <div className="flex-1">
-                <label className="text-xs text-muted-foreground mb-1 block">结束</label>
-                <div className="flex gap-1">
-                  <Input type="date" value={impEnd} onChange={e => setImpEnd(e.target.value)} className="h-8 text-xs flex-1" />
-                  <Popover open={calOpenEnd} onOpenChange={setCalOpenEnd}>
-                    <PopoverTrigger asChild><Button variant="outline" size="icon" className="h-8 w-8 shrink-0"><i data-lucide="calendar" className="size-3.5"></i></Button></PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={new Date(impEnd)} onSelect={d => { if (d) { setImpEnd(format(d, 'yyyy-MM-dd')); setCalOpenEnd(false) } }} initialFocus /></PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <label className="text-xs text-muted-foreground mb-1 block">类型</label>
-                <Select value={impType} onValueChange={v => setImpType(v as typeof impType)}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="all">全部</SelectItem><SelectItem value="income">收入</SelectItem><SelectItem value="expense">支出</SelectItem></SelectContent>
-                </Select>
-              </div>
-              <div className="flex-1">
-                <label className="text-xs text-muted-foreground mb-1 block">分类</label>
-                <Select value={impCategory} onValueChange={setImpCategory}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">全部</SelectItem>
-                    {[...new Set(bills.filter(b => impType === 'all' || b.type === impType).map(b => b.category))].filter(Boolean).sort().map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 text-xs">
-              <div className="flex justify-between"><span className="text-muted-foreground">收入</span><span className="font-medium text-emerald-600">+{importResult.income.toFixed(2)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">支出</span><span className="font-medium text-red-500">-{importResult.expense.toFixed(2)}</span></div>
-              <div className="flex justify-between border-t pt-1.5 mt-1.5"><span className="text-muted-foreground">结余</span><span className={cn("font-medium", importResult.balance >= 0 ? "text-emerald-600" : "text-red-500")}>{importResult.balance >= 0 ? '+' : ''}{importResult.balance.toFixed(2)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">笔数</span><span className="font-medium">{importResult.count}</span></div>
-            </div>
-            <Button className="w-full h-9 text-sm" disabled={importResult.count === 0} onClick={doImport}>
-              {impType === 'income' ? `导入收入 ¥${importResult.income.toFixed(2)}` :
-               impType === 'expense' ? `导入支出 ¥${importResult.expense.toFixed(2)}` :
-               `导入合计 ¥${(importResult.income + importResult.expense).toFixed(2)}`}
-            </Button>
-          </div>
         </div>
       )}
     </div>

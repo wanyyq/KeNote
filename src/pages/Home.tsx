@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { useStore } from "@/store/useStore"
+import { useBillStats } from "@/hooks/useBillStats"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { PieChartCard } from "@/components/charts/PieChartCard"
@@ -14,7 +14,7 @@ import { zhCN } from "date-fns/locale"
 function getGreeting() { const h = new Date().getHours(); if (h<12) return "上午好"; if (h<17) return "下午好"; return "晚上好" }
 
 export default function Home() {
-  const { bills } = useStore()
+  const { bills, loading, total, monthIncome, monthExpense, yearIncome, yearExpense } = useBillStats()
   const [createOpen, setCreateOpen] = useState(false)
   const todayStr = format(new Date(), "yyyy-MM-dd")
   const yearStr = format(new Date(), "yyyy")
@@ -24,15 +24,12 @@ export default function Home() {
     bills.filter(b => b.type===type && (!from || b.date>=format(from,"yyyy-MM-dd")) && (!to || b.date<=format(to,"yyyy-MM-dd"))).reduce((a,b) => a+b.amount,0)
 
   // Month stats
-  const stats = useMemo(() => {
-    const mi = sum("income", startOfMonth(new Date()), endOfMonth(new Date()))
-    const me = sum("expense", startOfMonth(new Date()), endOfMonth(new Date()))
-    return { mi, me, bal: mi-me, cnt: bills.length }
-  }, [bills])
-
-  // Year totals
-  const yearIncome = useMemo(() => sum("income", startOfYear(new Date())), [bills])
-  const yearExpense = useMemo(() => sum("expense", startOfYear(new Date())), [bills])
+  const stats = useMemo(() => ({
+    mi: monthIncome,
+    me: monthExpense,
+    bal: monthIncome - monthExpense,
+    cnt: total
+  }), [monthIncome, monthExpense, total])
 
   // Today
   const todayPie = useMemo(() => [{name:"收入",value:sum("income")},{name:"支出",value:sum("expense")}].map(d=>({...d,value:bills.filter(b=>b.type===(d.name==="收入"?"income":"expense")&&b.date===todayStr).reduce((a,b)=>a+b.amount,0)})), [bills,todayStr])

@@ -1,5 +1,6 @@
-import { useState, useRef } from "react"
-import { useStore } from "@/store/useStore"
+﻿import { useState, useRef } from "react"
+import { useStore, useSettingsStore } from "@/store/useStore"
+import { useBillStats } from "@/hooks/useBillStats"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,7 +12,10 @@ import IconPicker from "@/components/bills/IconPicker"
 import { BillType } from "@/store/useStore"
 
 export default function Console() {
-  const { bills, exportAllData, importData, replaceAllData, getAllCategories, removeCustomCategory, addCustomCategory, customExpenseCategories, customIncomeCategories, clearAllData } = useStore()
+  const { exportAllData, importData, replaceAllData, clearAllData } = useStore()
+  const { getAllCategories, removeCustomCategory, addCustomCategory, customExpenseCategories, customIncomeCategories } = useSettingsStore()
+  const { total, totalIncome, totalExpense } = useBillStats()
+  
   const [mergeStatus, setMergeStatus] = useState<{t:"success"|"error";m:string}|null>(null)
   const [replaceStatus, setReplaceStatus] = useState<{t:"success"|"error";m:string}|null>(null)
   const [replaceConfirmOpen, setReplaceConfirmOpen] = useState(false)
@@ -27,18 +31,22 @@ export default function Console() {
   const [tagIcon, setTagIcon] = useState("circle")
   const [ipOpen, setIpOpen] = useState(false)
 
-  const ti = bills.filter(b=>b.type==="income").reduce((a,b)=>a+b.amount,0)
-  const te = bills.filter(b=>b.type==="expense").reduce((a,b)=>a+b.amount,0)
   const allCustom = [...customExpenseCategories.map(c => ({...c, type: 'expense' as const})), ...customIncomeCategories.map(c => ({...c, type: 'income' as const}))]
 
-  const handleExport = () => {
-    const j = exportAllData(); const b = new Blob([j],{type:"application/json"}); const u = URL.createObjectURL(b)
+  const handleExport = async () => {
+    const j = await exportAllData(); const b = new Blob([j],{type:"application/json"}); const u = URL.createObjectURL(b)
     const a = document.createElement("a"); a.href=u; a.download=`KeNote_backup_${new Date().toISOString().slice(0,10)}.json`
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(u)
   }
   const handleMergeImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]; if(!f) return; const r = new FileReader()
-    r.onload = ev => { try { const t = ev.target?.result as string; const x=importData(t); setMergeStatus(x.success?{t:"success",m:`合并了 ${x.merged} 条，跳过 ${x.skipped} 条`}:{t:"error",m:"数据格式不正确"}) } catch { setMergeStatus({t:"error",m:"无法解析文件"}) } }
+    r.onload = async ev => { 
+      try { 
+        const t = ev.target?.result as string; 
+        const x = await importData(t); 
+        setMergeStatus(x.success?{t:"success",m:`合并了 ${x.merged} 条，跳过 ${x.skipped} 条`}:{t:"error",m:"数据格式不正确"})
+      } catch { setMergeStatus({t:"error",m:"无法解析文件"}) } 
+    }
     r.readAsText(f); if(mergeRef.current) mergeRef.current.value = ""
   }
   const handleReplaceImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,8 +54,9 @@ export default function Console() {
     r.onload = ev => { try { setPendingReplaceData(ev.target?.result as string); setReplaceConfirmOpen(true) } catch {} }
     r.readAsText(f); if(replaceRef.current) replaceRef.current.value = ""
   }
-  const confirmReplace = () => {
-    if (!pendingReplaceData) return; const x = replaceAllData(pendingReplaceData)
+  const confirmReplace = async () => {
+    if (!pendingReplaceData) return; 
+    const x = await replaceAllData(pendingReplaceData)
     setReplaceStatus(x.success ? {t:"success",m:`已导入 ${x.count} 条记录`} : {t:"error",m:"数据格式不正确"})
     setPendingReplaceData(null); setReplaceConfirmOpen(false)
   }
@@ -66,7 +75,7 @@ export default function Console() {
       <Card>
         <CardHeader><CardTitle>About KeNote</CardTitle></CardHeader>
         <CardContent className="space-y-2 text-sm">
-          {[["软件版本","1.0.1"],["为您记录",`${bills.length} 条账单`],["累计收入",`¥${ti.toFixed(2)}`,"text-emerald-600"],["累计支出",`¥${te.toFixed(2)}`,"text-red-500"],["账户结余",`¥${(ti-te).toFixed(2)}`,ti-te>=0?"":"text-red-500"]].map(([l,v,c],i)=><div key={l}><div className="flex justify-between py-1"><span className="text-muted-foreground">{l}</span><span className={c||""}>{v}</span></div>{i<5&&<Separator/>}</div>)}
+          {[["软件版本","1.0.1"],["为您记录",`${total} 条账单`],["累计收入",`¥${totalIncome.toFixed(2)}`,"text-emerald-600"],["累计支出",`¥${totalExpense.toFixed(2)}`,"text-red-500"],["账户结余",`¥${(totalIncome-totalExpense).toFixed(2)}`,totalIncome-totalExpense>=0?"":"text-red-500"]].map(([l,v,c],i)=><div key={l}><div className="flex justify-between py-1"><span className="text-muted-foreground">{l}</span><span className={c||""}>{v}</span></div>{i<5&&<Separator/>}</div>)}
         </CardContent>
       </Card>
 
@@ -107,9 +116,9 @@ export default function Console() {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between"><div><p className="text-sm font-medium">导出账户数据</p><p className="text-xs text-muted-foreground mt-0.5">完整备份用户的数据,或用于迁移数据到新的设备</p></div><Button variant="outline" size="sm" onClick={handleExport}><i data-lucide="download" className="size-3.5 mr-1.5"></i>导出</Button></div>
           <Separator />
-          <div><div className="flex items-center justify-between mb-2"><div><p className="text-sm font-medium">导入新账户数据</p><p className="text-xs text-red-500 mt-0.5">⚠ 此功能用于完整地将旧设备的数据迁移到此设备,将会完全替换此设备所有数据</p></div><input ref={replaceRef} type="file" accept=".json" className="hidden" id="rpf" onChange={handleReplaceImport}/><Button variant="destructive" size="sm" onClick={()=>replaceRef.current?.click()}><i data-lucide="upload" className="size-3.5 mr-1.5"></i>导入用户数据 </Button></div>{replaceStatus&&<div className={`text-xs p-2 rounded-md ${replaceStatus.t==="success"?"bg-emerald-50 text-emerald-700":"bg-red-50 text-destructive"}`}>{replaceStatus.m}</div>}</div>
+          <div><div className="flex items-center justify-between mb-2"><div><p className="text-sm font-medium">导入新账户数据</p><p className="text-xs text-red-500 mt-0.5">此功能用于完整地将旧设备的数据迁移到此设备,将会完全替换此设备所有数据</p></div><input ref={replaceRef} type="file" accept=".json" className="hidden" id="rpf" onChange={handleReplaceImport}/><Button variant="destructive" size="sm" onClick={()=>replaceRef.current?.click()}><i data-lucide="upload" className="size-3.5 mr-1.5"></i>导入用户数据 </Button></div>{replaceStatus&&<div className={`text-xs p-2 rounded-md ${replaceStatus.t==="success"?"bg-emerald-50 text-emerald-700":"bg-red-50 text-destructive"}`}>{replaceStatus.m}</div>}</div>
           <Separator />
-          <div><div className="flex items-center justify-between mb-2"><div><p className="text-sm font-medium">清除所有数据</p><p className="text-xs text-red-500 mt-0.5">⚠ 此操作将删除所有账单记录和自定义分类,无法恢复</p></div><Button variant="destructive" size="sm" onClick={()=>setClearConfirmOpen(true)}><i data-lucide="trash-2" className="size-3.5 mr-1.5"></i>清除所有数据</Button></div></div>
+          <div><div className="flex items-center justify-between mb-2"><div><p className="text-sm font-medium">清除所有数据</p><p className="text-xs text-red-500 mt-0.5">此操作将删除所有账单记录和自定义分类,无法恢复</p></div><Button variant="destructive" size="sm" onClick={()=>setClearConfirmOpen(true)}><i data-lucide="trash-2" className="size-3.5 mr-1.5"></i>清除所有数据</Button></div></div>
         </CardContent>
       </Card>
 
@@ -126,9 +135,9 @@ export default function Console() {
       {/* Replace Confirm AlertDialog */}
       <AlertDialog open={replaceConfirmOpen} onOpenChange={setReplaceConfirmOpen}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>⚠ 导入新账户数据</AlertDialogTitle>
+          <AlertDialogHeader><AlertDialogTitle>导入新账户数据</AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
-              <p>导入用户不是合并数据。</p><p>导入数据将会将此设备数据完全替换为导入的数据。</p><p>若想将另一个数据合并到一起，请使用下方「数据管理」→「导入数据（合并）」来合并。</p>
+              <p>导入用户不是合并数据。</p><p>导入数据将会将此设备数据完全替换为导入的数据。</p><p>若想将另一个数据合并到一起，请使用下方「数据管理」-「导入数据（合并）」来合并。</p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -142,14 +151,14 @@ export default function Console() {
       {/* Clear Data Confirm AlertDialog */}
       <AlertDialog open={clearConfirmOpen} onOpenChange={setClearConfirmOpen}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>⚠ 清除所有数据</AlertDialogTitle>
+          <AlertDialogHeader><AlertDialogTitle>清除所有数据</AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
               <p>此操作将删除所有账单记录和自定义分类。</p><p>此操作无法撤销，请谨慎操作。</p><p>建议在清除前先导出备份数据。</p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="bg-white hover:bg-gray-50">取消</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { clearAllData(); setClearConfirmOpen(false) }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">确认清除</AlertDialogAction>
+            <AlertDialogAction onClick={async () => { await clearAllData(); setClearConfirmOpen(false) }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">确认清除</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

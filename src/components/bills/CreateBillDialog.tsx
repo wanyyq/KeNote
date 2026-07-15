@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react"
+﻿import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { useStore, BillType } from "@/store/useStore"
+import { useStore, useSettingsStore, BillType } from "@/store/useStore"
 import CategoryIcon from "@/components/bills/CategoryIcon"
 import IconPicker from "@/components/bills/IconPicker"
 import { format } from "date-fns"
@@ -14,7 +14,9 @@ import { cn } from "@/lib/utils"
 interface Props { open: boolean; onOpenChange: (o: boolean) => void; editBill?: { id:string; amount:number; type:BillType; category:string; note:string; date:string } }
 
 export default function CreateBillDialog({ open, onOpenChange, editBill }: Props) {
-  const { addBill, updateBill, getAllCategories, addCustomCategory } = useStore()
+  const { addBill, updateBill } = useStore()
+  const { getAllCategories, addCustomCategory } = useSettingsStore()
+  
   const [type, setType] = useState<BillType>(editBill?.type||"expense")
   const [amount, setAmount] = useState(editBill?String(editBill.amount):"")
   const [category, setCategory] = useState(editBill?.category||"")
@@ -41,11 +43,15 @@ export default function CreateBillDialog({ open, onOpenChange, editBill }: Props
   const reset = () => { setType("expense"); setAmount(""); setCategory(""); setNote(""); setDate(format(new Date(),"yyyy-MM-dd")); setError(""); setCustomName(""); setCustomIcon("circle"); setCustomOpen(false) }
   const close = () => { reset(); onOpenChange(false) }
 
-  const submit = () => {
+  const submit = async () => {
     setError(""); const n = parseFloat(amount)
     if(!amount||isNaN(n)||n<=0){setError("请输入有效的金额");return}
     if(!category){setError("请选择分类");return}
-    editBill?updateBill(editBill.id,{type,amount:n,category,note,date}):addBill({type,amount:n,category,note,date})
+    if(editBill){
+      await updateBill(editBill.id,{type,amount:n,category,note,date})
+    }else{
+      await addBill({type,amount:n,category,note,date})
+    }
     close()
   }
 

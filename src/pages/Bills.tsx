@@ -1,5 +1,8 @@
-import { useState, useMemo, useRef, useEffect } from "react"
-import { useStore, Bill, BillType } from "@/store/useStore"
+import { useState, useMemo, useRef, useEffect, useCallback } from "react"
+import { useStore, useSettingsStore, Bill, BillType } from "@/store/useStore"
+import { useBillsPaginated } from "@/hooks/useBillsPaginated"
+import { useFilteredBills } from "@/hooks/useFilteredBills"
+import { getAllDistinctDates } from "@/lib/db"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,7 +17,8 @@ import { format, parseISO } from "date-fns"
 type FT = "all"|"income"|"expense"; type DM = "timeline"|"heatmap"
 
 export default function Bills() {
-  const { bills, removeBill, shiftBillDate, getAllCategories, exportBillsCSV } = useStore()
+  const { removeBill, shiftBillDate, exportBillsCSV } = useStore()
+  const { getAllCategories } = useSettingsStore()
   const [co, setCo] = useState(false)
   const [editBill, setEditBill] = useState<Bill | null>(null)
   const [s, setS] = useState("")
@@ -24,49 +28,95 @@ export default function Bills() {
   const [gotoOpen, setGotoOpen] = useState(false)
   const [gotoDate, setGotoDate] = useState(format(new Date(), "yyyy-MM-dd"))
   const [calOpen, setCalOpen] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const timelineRef = useRef<HTMLDivElement>(null)
+
+  // Use paginated hook for infinite scroll (timeline view)
+  const { 
+    bills: paginatedBills, 
+    loading, 
+    hasMore, 
+    total,
+    loadMore, 
+    refresh 
+  } = useBillsPaginated({
+    type: ft,
+    category: fc,
+    search: s,
+  })
+
+  // Use filtered bills for heatmap (loads all matching bills)
+  const { bills: heatmapBills } = useFilteredBills({
+    type: ft,
+    category: fc,
+    search: s,
+  })
+
+  // Intersection observer for infinite scroll
+  const observerRef = useRef<IntersectionObserver | null>(null)
+  const loadMoreRef = useCallback((node: HTMLDivElement | null) => {
+    if (loading) return
+    if (observerRef.current) observerRef.current.disconnect()
+    observerRef.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) loadMore()
+    }, { rootMargin: '100px' })
+    if (node) observerRef.current.observe(node)
+  }, [loading, hasMore, loadMore])
 
   const cats = useMemo(() => {
     const a = new Set<string>(); getAllCategories("expense").forEach(c=>a.add(c.name)); getAllCategories("income").forEach(c=>a.add(c.name))
     return Array.from(a).sort()
   }, [getAllCategories])
 
-  const fb = useMemo(() => bills.filter(b=>{
-    if(ft==="income"&&b.type!=="income") return false; if(ft==="expense"&&b.type!=="expense") return false
-    if(fc!=="all"&&b.category!==fc) return false
-    if(s){ const q=s.toLowerCase(); if(!b.note.toLowerCase().includes(q)&&!b.category.toLowerCase().includes(q)&&!b.amount.toString().includes(q)) return false }
-    return true
-  }),[bills,ft,fc,s])
-
   const handleEdit = (b: Bill) => { setEditBill(b); setCo(true) }
   const handleClose = () => { setCo(false); setEditBill(null) }
+  
+  // Refresh after operations
+  const handleDelete = async (id: string) => { await removeBill(id); refresh() }
+  const handleShift = async (id: string, days: number) => { await shiftBillDate(id, days); refresh() }
+  
+  useEffect(() => { if (!co) refresh() }, [co, refresh])
 
-  const doGoto = () => {
-    // Find closest date in filtered bills
-    const dates = [...new Set(fb.map(b => b.date))].sort()
-    if (dates.length === 0) { setGotoOpen(false); return }
-    let target = gotoDate
-    // Binary search for closest
-    let closest = dates[0]
-    let minDiff = Math.abs(new Date(target).getTime() - new Date(closest).getTime())
-    for (const d of dates) {
-      const diff = Math.abs(new Date(target).getTime() - new Date(d).getTime())
+  // Jump to date - query all dates from IndexedDB
+  const doGoto = async () => {
+    setGotoOpen(false)
+    
+    // First load all bills to ensure the date exists
+    const allDates = await getAllDistinctDates()
+    if (allDates.length === 0) return
+    
+    // Find closest date
+    let closest = allDates[0]
+    let minDiff = Math.abs(new Date(gotoDate).getTime() - new Date(closest).getTime())
+    for (const d of allDates) {
+      const diff = Math.abs(new Date(gotoDate).getTime() - new Date(d).getTime())
       if (diff < minDiff) { minDiff = diff; closest = d }
     }
-    setGotoOpen(false)
-    // Scroll to the date section
+    
+    // Switch to timeline view and scroll
+    setDm("timeline")
     setTimeout(() => {
       const el = document.getElementById(`bill-date-${closest}`)
       if (el) el.scrollIntoView({ behavior: "smooth", block: "start" })
-    }, 100)
+    }, 200)
+  }
+
+  // Handle export with loading state
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      await exportBillsCSV()
+    } finally {
+      setExporting(false)
+    }
   }
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 md:py-10 space-y-5">
       <div className="pt-4 md:pt-8 flex items-center justify-between gap-4">
-        <div><h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">账单</h1><p className="text-muted-foreground mt-1">收入与支出阅览</p></div>
+        <div><h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">账单</h1><p className="text-muted-foreground mt-1">收入与支出阅览 {total > 0 && <span className="text-xs">共 {total} 条</span>}</p></div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={exportBillsCSV}><i data-lucide="download" className="size-4 mr-1"></i>导出到Excel</Button>
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting}><i data-lucide="download" className="size-4 mr-1"></i>{exporting ? "导出中..." : "导出到Excel"}</Button>
           <Button variant="outline" size="sm" onClick={() => { setGotoDate(format(new Date(),"yyyy-MM-dd")); setGotoOpen(true) }}><i data-lucide="calendar" className="size-4 mr-1"></i>跳转至某一天</Button>
           <Button onClick={()=>{setEditBill(null);setCo(true)}}><i data-lucide="plus" className="size-4 mr-1.5"></i>新建记账</Button>
         </div>
@@ -77,8 +127,25 @@ export default function Bills() {
         <Select value={fc} onValueChange={setFc}><SelectTrigger className="w-[120px]"><SelectValue placeholder="分类"/></SelectTrigger><SelectContent><SelectItem value="all">全部分类</SelectItem>{cats.map(c=><SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
         <Select value={dm} onValueChange={v=>setDm(v as DM)}><SelectTrigger className="w-[110px]"><SelectValue placeholder="视图"/></SelectTrigger><SelectContent><SelectItem value="timeline">时间轴</SelectItem><SelectItem value="heatmap">热力图</SelectItem></SelectContent></Select>
       </div>
-      {dm==="heatmap"?<Card><CardContent className="py-5"><Heatmap bills={fb}/></CardContent></Card>
-        :<div ref={timelineRef}><Timelist bills={fb} onDelete={removeBill} onEdit={handleEdit} onShift={shiftBillDate} emptyMessage={ft!=="all"||fc!=="all"||s?"没有符合筛选条件的账单":"暂无账单记录"}/></div>}
+      {dm==="heatmap"?<Card><CardContent className="py-5"><Heatmap bills={heatmapBills}/></CardContent></Card>
+        :<div ref={timelineRef}>
+          <Timelist bills={paginatedBills} onDelete={handleDelete} onEdit={handleEdit} onShift={handleShift} emptyMessage={ft!=="all"||fc!=="all"||s?"没有符合筛选条件的账单":"暂无账单记录"}/>
+          {hasMore && (
+            <div ref={loadMoreRef} className="flex justify-center py-4">
+              {loading ? (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <i data-lucide="loader-2" className="size-4 animate-spin"></i>
+                  <span className="text-sm">加载中...</span>
+                </div>
+              ) : (
+                <Button variant="outline" size="sm" onClick={loadMore}>加载更多</Button>
+              )}
+            </div>
+          )}
+          {!hasMore && paginatedBills.length > 0 && (
+            <div className="text-center py-4 text-sm text-muted-foreground">已加载全部 {paginatedBills.length} 条账单</div>
+          )}
+        </div>}
       {co && <CreateBillDialog open={co} onOpenChange={handleClose} editBill={editBill ? { id: editBill.id, amount: editBill.amount, type: editBill.type as BillType, category: editBill.category, note: editBill.note, date: editBill.date } : undefined} />}
 
       {/* Goto Date Dialog */}
