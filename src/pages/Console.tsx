@@ -23,6 +23,7 @@ export default function Console() {
   const mergeRef = useRef<HTMLInputElement>(null)
   const replaceRef = useRef<HTMLInputElement>(null)
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false)
+  const [operationLoading, setOperationLoading] = useState(false)
 
   // Add tag state
   const [addTagOpen, setAddTagOpen] = useState(false)
@@ -42,10 +43,12 @@ export default function Console() {
     const f = e.target.files?.[0]; if(!f) return; const r = new FileReader()
     r.onload = async ev => { 
       try { 
-        const t = ev.target?.result as string; 
-        const x = await importData(t); 
+        setOperationLoading(true)
+        const t = ev.target?.result as string
+        const x = await importData(t)
         setMergeStatus(x.success?{t:"success",m:`合并了 ${x.merged} 条，跳过 ${x.skipped} 条`}:{t:"error",m:"数据格式不正确"})
-      } catch { setMergeStatus({t:"error",m:"无法解析文件"}) } 
+      } catch { setMergeStatus({t:"error",m:"无法解析文件"}) }
+      finally { setOperationLoading(false) }
     }
     r.readAsText(f); if(mergeRef.current) mergeRef.current.value = ""
   }
@@ -55,10 +58,22 @@ export default function Console() {
     r.readAsText(f); if(replaceRef.current) replaceRef.current.value = ""
   }
   const confirmReplace = async () => {
-    if (!pendingReplaceData) return; 
+    if (!pendingReplaceData) return
+    setOperationLoading(true)
     const x = await replaceAllData(pendingReplaceData)
     setReplaceStatus(x.success ? {t:"success",m:`已导入 ${x.count} 条记录`} : {t:"error",m:"数据格式不正确"})
     setPendingReplaceData(null); setReplaceConfirmOpen(false)
+    setOperationLoading(false)
+  }
+  // Handle "合并" button in replace dialog - convert to merge
+  const handleReplaceToMerge = async () => {
+    if (!pendingReplaceData) return
+    setReplaceConfirmOpen(false)
+    setOperationLoading(true)
+    const x = await importData(pendingReplaceData)
+    setMergeStatus(x.success?{t:"success",m:`合并了 ${x.merged} 条，跳过 ${x.skipped} 条`}:{t:"error",m:"数据格式不正确"})
+    setPendingReplaceData(null)
+    setOperationLoading(false)
   }
 
   const addTag = () => {
@@ -142,7 +157,7 @@ export default function Console() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="bg-white hover:bg-gray-50">取消</AlertDialogCancel>
-            <Button variant="outline" onClick={() => setReplaceConfirmOpen(false)} className="text-muted-foreground">合并</Button>
+            <Button variant="outline" onClick={handleReplaceToMerge} className="text-muted-foreground">合并</Button>
             <AlertDialogAction onClick={confirmReplace} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">确定导入新数据</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -164,6 +179,17 @@ export default function Console() {
       </AlertDialog>
 
       <IconPicker open={ipOpen} selected={tagIcon} onSelect={n => { setTagIcon(n); setIpOpen(false) }} onClose={() => setIpOpen(false)} />
+
+      {/* Loading overlay for import/merge operations */}
+      {operationLoading && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center">
+          <div className="fixed inset-0 backdrop-blur-sm bg-black/20" />
+          <div className="relative z-[201] rounded-lg border bg-background p-8 shadow-xl flex flex-col items-center gap-4">
+            <i data-lucide="loader-2" className="size-8 text-blue-500 animate-spin"></i>
+            <p className="text-sm text-muted-foreground">正在处理数据...</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

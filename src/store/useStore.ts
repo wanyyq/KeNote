@@ -157,19 +157,23 @@ export const useStore = create<BillsState>()((set, get) => ({
   },
 
   shiftBillDate: async (id, days) => {
-    const state = get()
-    const bill = state.bills.find((b) => b.id === id)
+    // Read bill directly from IndexedDB since store bills is empty
+    const { getBillById } = await import('@/lib/db')
+    const bill = await getBillById(id)
     if (!bill) return
 
     const newCreatedAt = bill.createdAt + days * 60000
     await dbUpdateBill(id, { createdAt: newCreatedAt })
     
-    const updated = state.bills.map((b) => {
-      if (b.id !== id) return b
-      return { ...b, createdAt: newCreatedAt }
+    // Update in-memory state if the bill exists
+    set((state) => {
+      const updated = state.bills.map((b) => {
+        if (b.id !== id) return b
+        return { ...b, createdAt: newCreatedAt }
+      })
+      updated.sort((a, b) => b.createdAt - a.createdAt)
+      return { bills: updated }
     })
-    updated.sort((a, b) => b.createdAt - a.createdAt)
-    set({ bills: updated })
   },
 
   exportAllData: async () => {

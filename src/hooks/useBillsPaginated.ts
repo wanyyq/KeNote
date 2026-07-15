@@ -24,26 +24,27 @@ export function useBillsPaginated(options: UseBillsPaginatedOptions = {}): UseBi
   const [loading, setLoading] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const [total, setTotal] = useState(0)
+  const [initialized, setInitialized] = useState(false)
   
-  // Track the last bill's createdAt for pagination
   const lastCreatedAtRef = useRef<number | undefined>(undefined)
-  
-  // Track if this is the initial load
-  const isInitialLoad = useRef(true)
+  const loadingRef = useRef(false)
+  const mountedRef = useRef(true)
 
-  // Load initial data and count
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
+  }, [])
+
   const loadInitial = useCallback(async () => {
+    if (!mountedRef.current) return
     setLoading(true)
     try {
-      // Get total count
       const count = await getBillCount()
+      if (!mountedRef.current) return
       setTotal(count)
       
-      // Reset pagination
       lastCreatedAtRef.current = undefined
-      isInitialLoad.current = false
       
-      // Load first page
       const filter = {
         type: options.type && options.type !== 'all' ? options.type : undefined,
         category: options.category && options.category !== 'all' ? options.category : undefined,
@@ -51,6 +52,7 @@ export function useBillsPaginated(options: UseBillsPaginatedOptions = {}): UseBi
       }
       
       const result = await getFilteredBillsPaginated(filter, PAGE_SIZE)
+      if (!mountedRef.current) return
       setBills(result.bills)
       setHasMore(result.hasMore)
       
@@ -60,14 +62,16 @@ export function useBillsPaginated(options: UseBillsPaginatedOptions = {}): UseBi
     } catch (error) {
       console.error('Failed to load bills:', error)
     } finally {
-      setLoading(false)
+      if (mountedRef.current) {
+        setLoading(false)
+        setInitialized(true)
+      }
     }
   }, [options.type, options.category, options.search])
 
-  // Load more bills
   const loadMore = useCallback(async () => {
-    if (loading || !hasMore) return
-    
+    if (loadingRef.current || !hasMore) return
+    loadingRef.current = true
     setLoading(true)
     try {
       const filter = {
@@ -77,7 +81,7 @@ export function useBillsPaginated(options: UseBillsPaginatedOptions = {}): UseBi
       }
       
       const result = await getFilteredBillsPaginated(filter, PAGE_SIZE, lastCreatedAtRef.current)
-      
+      if (!mountedRef.current) return
       setBills(prev => [...prev, ...result.bills])
       setHasMore(result.hasMore)
       
@@ -87,11 +91,11 @@ export function useBillsPaginated(options: UseBillsPaginatedOptions = {}): UseBi
     } catch (error) {
       console.error('Failed to load more bills:', error)
     } finally {
-      setLoading(false)
+      if (mountedRef.current) setLoading(false)
+      loadingRef.current = false
     }
-  }, [loading, hasMore, options.type, options.category, options.search])
+  }, [hasMore, options.type, options.category, options.search])
 
-  // Refresh (reload from beginning)
   const refresh = useCallback(async () => {
     await loadInitial()
   }, [loadInitial])
@@ -103,7 +107,7 @@ export function useBillsPaginated(options: UseBillsPaginatedOptions = {}): UseBi
 
   return {
     bills,
-    loading,
+    loading: loading || !initialized,
     hasMore,
     total,
     loadMore,

@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from "react"
+﻿import { useState, useMemo, useRef, useEffect, useCallback } from "react"
 import { useStore, useSettingsStore, Bill, BillType } from "@/store/useStore"
 import { useBillsPaginated } from "@/hooks/useBillsPaginated"
 import { useFilteredBills } from "@/hooks/useFilteredBills"
@@ -12,7 +12,7 @@ import { Calendar } from "@/components/ui/calendar"
 import CreateBillDialog from "@/components/bills/CreateBillDialog"
 import Timelist from "@/components/bills/Timelist"
 import Heatmap from "@/components/charts/Heatmap"
-import { format, parseISO } from "date-fns"
+import { format } from "date-fns"
 
 type FT = "all"|"income"|"expense"; type DM = "timeline"|"heatmap"
 
@@ -31,7 +31,6 @@ export default function Bills() {
   const [exporting, setExporting] = useState(false)
   const timelineRef = useRef<HTMLDivElement>(null)
 
-  // Use paginated hook for infinite scroll (timeline view)
   const { 
     bills: paginatedBills, 
     loading, 
@@ -39,20 +38,14 @@ export default function Bills() {
     total,
     loadMore, 
     refresh 
-  } = useBillsPaginated({
-    type: ft,
-    category: fc,
-    search: s,
-  })
+  } = useBillsPaginated({ type: ft, category: fc, search: s })
 
-  // Use filtered bills for heatmap (loads all matching bills)
-  const { bills: heatmapBills } = useFilteredBills({
-    type: ft,
-    category: fc,
-    search: s,
-  })
+  const { bills: heatmapBills } = useFilteredBills({ type: ft, category: fc, search: s })
 
-  // Intersection observer for infinite scroll
+  // Keep ref to latest refresh function to avoid stale closures
+  const refreshRef = useRef(refresh)
+  refreshRef.current = refresh
+
   const observerRef = useRef<IntersectionObserver | null>(null)
   const loadMoreRef = useCallback((node: HTMLDivElement | null) => {
     if (loading) return
@@ -64,28 +57,40 @@ export default function Bills() {
   }, [loading, hasMore, loadMore])
 
   const cats = useMemo(() => {
-    const a = new Set<string>(); getAllCategories("expense").forEach(c=>a.add(c.name)); getAllCategories("income").forEach(c=>a.add(c.name))
+    const a = new Set<string>()
+    getAllCategories("expense").forEach(c=>a.add(c.name))
+    getAllCategories("income").forEach(c=>a.add(c.name))
     return Array.from(a).sort()
   }, [getAllCategories])
 
   const handleEdit = (b: Bill) => { setEditBill(b); setCo(true) }
-  const handleClose = () => { setCo(false); setEditBill(null) }
   
-  // Refresh after operations
-  const handleDelete = async (id: string) => { await removeBill(id); refresh() }
-  const handleShift = async (id: string, days: number) => { await shiftBillDate(id, days); refresh() }
+  const handleClose = () => { 
+    setCo(false); setEditBill(null)
+    // Refresh list after dialog closes (bill was added/edited)
+    setTimeout(() => refreshRef.current(), 100)
+  }
   
-  useEffect(() => { if (!co) refresh() }, [co, refresh])
+  const handleDelete = async (id: string) => { 
+    await removeBill(id)
+    refreshRef.current()
+  }
+  
+  const handleShift = async (id: string, days: number) => { 
+    await shiftBillDate(id, days)
+    refreshRef.current()
+  }
 
-  // Jump to date - query all dates from IndexedDB
+  // Refresh when dialog closes
+  useEffect(() => { 
+    if (!co) refreshRef.current()
+  }, [co])
+
   const doGoto = async () => {
     setGotoOpen(false)
-    
-    // First load all bills to ensure the date exists
     const allDates = await getAllDistinctDates()
     if (allDates.length === 0) return
     
-    // Find closest date
     let closest = allDates[0]
     let minDiff = Math.abs(new Date(gotoDate).getTime() - new Date(closest).getTime())
     for (const d of allDates) {
@@ -93,22 +98,21 @@ export default function Bills() {
       if (diff < minDiff) { minDiff = diff; closest = d }
     }
     
-    // Switch to timeline view and scroll
     setDm("timeline")
     setTimeout(() => {
-      const el = document.getElementById(`bill-date-${closest}`)
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" })
-    }, 200)
+      refreshRef.current().then(() => {
+        setTimeout(() => {
+          const el = document.getElementById(`bill-date-${closest}`)
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" })
+        }, 300)
+      })
+    }, 100)
   }
 
-  // Handle export with loading state
   const handleExport = async () => {
     setExporting(true)
-    try {
-      await exportBillsCSV()
-    } finally {
-      setExporting(false)
-    }
+    try { await exportBillsCSV() }
+    finally { setExporting(false) }
   }
 
   return (
@@ -148,7 +152,6 @@ export default function Bills() {
         </div>}
       {co && <CreateBillDialog open={co} onOpenChange={handleClose} editBill={editBill ? { id: editBill.id, amount: editBill.amount, type: editBill.type as BillType, category: editBill.category, note: editBill.note, date: editBill.date } : undefined} />}
 
-      {/* Goto Date Dialog */}
       {gotoOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 backdrop-blur-sm" onClick={() => setGotoOpen(false)} />
