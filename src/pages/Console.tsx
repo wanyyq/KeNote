@@ -90,7 +90,7 @@ export default function Console() {
       <Card>
         <CardHeader><CardTitle>About KeNote</CardTitle></CardHeader>
         <CardContent className="space-y-2 text-sm">
-          {[["软件版本","1.0.1"],["为您记录",`${total} 条账单`],["累计收入",`¥${totalIncome.toFixed(2)}`,"text-emerald-600"],["累计支出",`¥${totalExpense.toFixed(2)}`,"text-red-500"],["账户结余",`¥${(totalIncome-totalExpense).toFixed(2)}`,totalIncome-totalExpense>=0?"":"text-red-500"]].map(([l,v,c],i)=><div key={l}><div className="flex justify-between py-1"><span className="text-muted-foreground">{l}</span><span className={c||""}>{v}</span></div>{i<5&&<Separator/>}</div>)}
+          {[["软件版本","1.1.0"],["为您记录",`${total} 条账单`],["累计收入",`¥${totalIncome.toFixed(2)}`,"text-emerald-600"],["累计支出",`¥${totalExpense.toFixed(2)}`,"text-red-500"],["账户结余",`¥${(totalIncome-totalExpense).toFixed(2)}`,totalIncome-totalExpense>=0?"":"text-red-500"]].map(([l,v,c],i)=><div key={l}><div className="flex justify-between py-1"><span className="text-muted-foreground">{l}</span><span className={c||""}>{v}</span></div>{i<5&&<Separator/>}</div>)}
         </CardContent>
       </Card>
 
